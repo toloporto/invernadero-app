@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invernadero Inteligente • Libro de Campo Oficial Galicia</title>
+    <!-- Metadatos y Manifiesto PWA (Instalable en cualquier plataforma) -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0b1120">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Invernadero">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+    <link rel="icon" type="image/png" href="/static/icons/icon-192.png">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            400: '#34d399',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        [x-cloak] { display: none !important; }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-card {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-[#0b1120] text-slate-100 min-h-screen font-sans antialiased selection:bg-emerald-500 selection:text-white"
+      x-data="{ 
+          activeTab: '{{ active_tab }}',
+          showNuevoLote: false,
+          showNuevoTratamiento: false,
+          showNuevaFertilizacion: false,
+          showNuevaCosecha: false
+      }">
+
+    <!-- Barra de Estado Superior -->
+    <div class="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-xl">
+                    🌱
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-lg font-bold tracking-tight text-white">Invernadero Galego</h1>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            CUE Galicia • RD 1054/2022
+                        </span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 mt-1">
+                        <p class="text-xs text-slate-400">
+                            {{ exp.titular }} • REGEPA: <span class="font-mono text-slate-300">{{ exp.regepa }}</span>
+                        </p>
+                        <button @click="activeTab = 'explotacion'" 
+                                title="Cambiar ubicación del invernadero"
+                                class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold transition group">
+                            <span>📍 {{ exp.municipio }} ({{ exp.provincia }})</span>
+                            <span class="text-[10px] text-emerald-300 underline group-hover:text-emerald-200">Cambiar Ubicación</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Acciones rápidas -->
+            <div class="flex items-center gap-2 sm:gap-3" x-data="{
+                canInstall: false,
+                isInstalled: window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone,
+                deferredPrompt: null,
+                installApp() {
+                    if (this.deferredPrompt) {
+                        this.deferredPrompt.prompt();
+                        this.deferredPrompt.userChoice.then((choiceResult) => {
+                            if (choiceResult.outcome === 'accepted') {
+                                this.canInstall = false;
+                                this.isInstalled = true;
+                            }
+                            this.deferredPrompt = null;
+                        });
+                    } else {
+                        alert('Para instalar en tu dispositivo:\n- En Android / Chrome: Pulsa el menú de 3 puntos y selecciona \'Instalar aplicación\'.\n- En iPhone / iPad: Pulsa el botón Compartir y selecciona \'Añadir a la pantalla de inicio\'.\n- En PC / Mac: Haz clic en el icono de instalación que aparece a la derecha de la barra de direcciones.');
+                    }
+                }
+            }" x-init="
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    deferredPrompt = e;
+                    canInstall = true;
+                });
+                window.addEventListener('appinstalled', () => {
+                    canInstall = false;
+                    isInstalled = true;
+                });
+            ">
+                <!-- Botón Instalar App PWA -->
+                <button x-show="!isInstalled" @click="installApp()"
+                        title="Descargar e instalar como App nativa en este dispositivo"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 shadow-md shadow-emerald-500/20 transition transform hover:-translate-y-0.5">
+                    <span>📲</span>
+                    <span class="hidden sm:inline">Instalar App</span>
+                </button>
+
+                <button @click="activeTab = 'explotacion'"
+                        title="Editar referencias SIGPAC del invernadero"
+                        class="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700/80 border border-slate-700 text-xs text-slate-300 transition">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>SIGPAC: Pol {{ exp.poligono }} • Parc {{ exp.parcela }} (Rec {{ exp.recinto }})</span>
+                    <span class="text-xs text-emerald-400 font-semibold">✏️</span>
+                </button>
+                <a href="/libro-campo/imprimir" target="_blank"
+                   class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-900/40 transition duration-150 transform hover:-translate-y-0.5">
+                    <span>🖨️</span>
+                    <span>Libro Oficial (PDF)</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Banner de Alerta de Validación (Error) -->
+        {% if error_msg %}
+        <div x-data="{ show: true }" x-show="show" x-transition
+             class="glass-panel p-4 rounded-2xl border-l-4 border-rose-500 bg-rose-950/40 text-rose-200 flex items-start justify-between shadow-2xl">
+            <div class="flex items-start gap-3">
+                <div class="w-9 h-9 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-lg flex-shrink-0 mt-0.5">
+                    ⛔
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-rose-300">Validación Rechazada por la Lógica del Servidor</h3>
+                    <p class="text-xs text-rose-200/90 mt-1 leading-relaxed">{{ error_msg }}</p>
+                </div>
+            </div>
+            <button @click="show = false" class="text-rose-400 hover:text-rose-200 text-sm font-bold p-1 transition" title="Cerrar alerta">
+                ✕
+            </button>
+        </div>
+        {% endif %}
+
+        <!-- Banner de Confirmación (Éxito) -->
+        {% if exito_msg %}
+        <div x-data="{ show: true }" x-show="show" x-transition
+             class="glass-panel p-4 rounded-2xl border-l-4 border-emerald-500 bg-emerald-950/40 text-emerald-200 flex items-start justify-between shadow-2xl">
+            <div class="flex items-start gap-3">
+                <div class="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-lg flex-shrink-0 mt-0.5">
+                    ✓
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-emerald-300">Operación Validada y Registrada con Éxito</h3>
+                    <p class="text-xs text-emerald-200/90 mt-1 leading-relaxed">{{ exito_msg }}</p>
+                </div>
+            </div>
+            <button @click="show = false" class="text-emerald-400 hover:text-emerald-200 text-sm font-bold p-1 transition" title="Cerrar notificación">
+                ✕
+            </button>
+        </div>
+        {% endif %}
+
+        <!-- Métricas Principales (KPI Cards) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Lotes Activos -->
+            <div class="glass-panel p-5 rounded-2xl flex items-center justify-between shadow-xl">
+                <div>
+                    <p class="text-xs font-medium uppercase tracking-wider text-slate-400">Lotes en Cultivo</p>
+                    <p class="text-2xl font-extrabold text-white mt-1">{{ stats.total_lotes_activos }}</p>
+                    <p class="text-xs text-emerald-400 mt-1 font-medium">{{ stats.sup_cultivada_m2 }} m² en invernadero</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-2xl">
+                    🌿
+                </div>
+            </div>
+
+            <!-- Plazos de Seguridad Activos -->
+            <div class="glass-panel p-5 rounded-2xl flex items-center justify-between shadow-xl">
+                <div>
+                    <p class="text-xs font-medium uppercase tracking-wider text-slate-400">En Plazo de Carencia</p>
+                    <p class="text-2xl font-extrabold {% if stats.total_en_carencia > 0 %}text-amber-400{% else %}text-emerald-400{% endif %} mt-1">
+                        {{ stats.total_en_carencia }}
+                    </p>
+                    <p class="text-xs {% if stats.total_en_carencia > 0 %}text-amber-300/80{% else %}text-slate-400{% endif %} mt-1 font-medium">
+                        {% if stats.total_en_carencia > 0 %}Bloqueo activo para cosecha{% else %}Todos aptos para recolección{% endif %}
+                    </p>
+                </div>
+                <div class="w-12 h-12 rounded-xl {% if stats.total_en_carencia > 0 %}bg-amber-500/10 border-amber-500/20 text-amber-400{% else %}bg-emerald-500/10 border-emerald-500/20 text-emerald-400{% endif %} border flex items-center justify-center text-2xl">
+                    🛡️
+                </div>
+            </div>
+
+            <!-- Cosechas Realizadas -->
+            <div class="glass-panel p-5 rounded-2xl flex items-center justify-between shadow-xl">
+                <div>
+                    <p class="text-xs font-medium uppercase tracking-wider text-slate-400">Producción Cosechada</p>
+                    <p class="text-2xl font-extrabold text-white mt-1">{{ stats.total_cosechas_kg }} <span class="text-sm font-normal text-slate-400">kg</span></p>
+                    <p class="text-xs text-emerald-400 mt-1 font-medium">Con trazabilidad de lote</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-2xl">
+                    🧺
+                </div>
+            </div>
+
+            <!-- Superficie Explotación -->
+            <div class="glass-panel p-5 rounded-2xl flex items-center justify-between shadow-xl">
+                <div>
+                    <p class="text-xs font-medium uppercase tracking-wider text-slate-400">Invernadero Total</p>
+                    <p class="text-2xl font-extrabold text-white mt-1">{{ exp.sup_invernadero_m2 }} <span class="text-sm font-normal text-slate-400">m²</span></p>
+                    <p class="text-xs text-slate-400 mt-1 font-mono">ROPO: {{ exp.ropo_titular }}</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-2xl">
+                    🏡
+                </div>
+            </div>
+        </div>
+
+        <!-- Pestañas de Navegación del Libro de Campo -->
+        <div class="border-b border-slate-800">
+            <nav class="flex space-x-2 sm:space-x-6 overflow-x-auto custom-scrollbar pb-2" aria-label="Tabs">
+                <button @click="activeTab = 'lotes'"
+                        :class="activeTab === 'lotes' ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10' : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'"
+                        class="whitespace-nowrap py-2.5 px-4 rounded-xl border-b-2 font-semibold text-sm transition flex items-center gap-2">
+                    <span>🥬</span> Lotes & Cultivos
+                    <span class="ml-1 px-1.5 py-0.5 rounded-full text-xs bg-slate-800 text-slate-300">{{ lotes|length }}</span>
+                </button>
+
+                <button @click="activeTab = 'fitosanitarios'"
+                        :class="activeTab === 'fitosanitarios' ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10' : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'"
+                        class="whitespace-nowrap py-2.5 px-4 rounded-xl border-b-2 font-semibold text-sm transition flex items-center gap-2">
+                    <span>🛡️</span> Fitosanitarios (ROPO/MAPA)
+                    <span class="ml-1 px-1.5 py-0.5 rounded-full text-xs bg-slate-800 text-slate-300">{{ tratamientos|length }}</span>
+                </button>
+
+                <button @click="activeTab = 'fertilizacion'"
+                        :class="activeTab === 'fertilizacion' ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10' : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'"
+                        class="whitespace-nowrap py-2.5 px-4 rounded-xl border-b-2 font-semibold text-sm transition flex items-center gap-2">
+                    <span>🌿</span> Fertilización Sostenible
+                    <span class="ml-1 px-1.5 py-0.5 rounded-full text-xs bg-slate-800 text-slate-300">{{ fertilizaciones|length }}</span>
+                </button>
+
+                <button @click="activeTab = 'cosechas'"
+                        :class="activeTab === 'cosechas' ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10' : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'"
+                        class="whitespace-nowrap py-2.5 px-4 rounded-xl border-b-2 font-semibold text-sm transition flex items-center gap-2">
+                    <span>📦</span> Cosechas & Trazabilidad
+                    <span class="ml-1 px-1.5 py-0.5 rounded-full text-xs bg-slate-800 text-slate-300">{{ cosechas|length }}</span>
+                </button>
+
+                <button @click="activeTab = 'explotacion'"
+                        :class="activeTab === 'explotacion' ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10' : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'"
+                        class="whitespace-nowrap py-2.5 px-4 rounded-xl border-b-2 font-semibold text-sm transition flex items-center gap-2">
+                    <span>📋</span> Ficha Explotación & SIGPAC
+                </button>
+            </nav>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB 1: LOTES & CULTIVOS                    -->
+        <!-- ========================================== -->
+        <div x-show="activeTab === 'lotes'" class="space-y-6" x-transition>
+            <!-- Cabecera de acción -->
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl font-bold text-white">Lotes de Cultivo en Invernadero</h2>
+                    <p class="text-xs text-slate-400">Control de estados de siembra, desarrollo y cálculo automático de carencia fitosanitaria.</p>
+                </div>
+                <button @click="showNuevoLote = !showNuevoLote"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-lg shadow-emerald-900/30">
+                    <span x-text="showNuevoLote ? '✕ Cancelar' : '+ Nuevo Lote'"></span>
+                </button>
+            </div>
+
+            <!-- Formulario Desplegable: Nuevo Lote -->
+            <div x-show="showNuevoLote" x-collapse x-cloak class="glass-panel p-6 rounded-2xl border border-emerald-500/30">
+                <h3 class="text-base font-semibold text-emerald-300 mb-4 flex items-center gap-2">
+                    <span>🌱</span> Registrar Nuevo Lote de Cultivo (Galicia)
+                </h3>
+                <form action="/agregar-lote" method="POST" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <div class="col-span-1 md:col-span-2">
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Cultivo Autóctono / Comercial</label>
+                        <select name="cultivo" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                            {% for cultivo, temporada in cultivos_disponibles.items() %}
+                            <option value="{{ cultivo }}">{{ cultivo }} ({{ temporada }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Variedad / Selección</label>
+                        <input type="text" name="variedad" placeholder="Ej. Herbón, Santiago, Lorena" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Plantas / Semillas</label>
+                        <input type="number" name="cantidad" required min="1" value="100" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Superficie (m²)</label>
+                        <input type="number" step="0.1" name="superficie_m2" required value="50.0" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Fecha de Siembra</label>
+                        <input type="date" name="fecha_siembra" value="{{ fecha_hoy }}" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div class="col-span-1 md:col-span-3 lg:col-span-6 flex justify-end gap-3 mt-2">
+                        <button type="button" @click="showNuevoLote = false" class="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white bg-slate-800 transition">Cancelar</button>
+                        <button type="submit" class="px-5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-md shadow-emerald-900/40">Guardar Lote de Cultivo</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Tabla de Lotes -->
+            <div class="glass-panel rounded-2xl overflow-hidden shadow-2xl">
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left text-sm border-collapse">
+                        <thead>
+                            <tr class="bg-slate-800/80 border-b border-slate-700/60 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                                <th class="p-4">Cód. Lote</th>
+                                <th class="p-4">Cultivo & Variedad</th>
+                                <th class="p-4">Siembra / Superficie</th>
+                                <th class="p-4">Estado Fenológico</th>
+                                <th class="p-4">Seguridad Fitosanitaria</th>
+                                <th class="p-4 text-right">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/60">
+                            {% for lote in lotes %}
+                            <tr class="hover:bg-slate-800/40 transition">
+                                <td class="p-4 font-mono font-medium text-emerald-400 text-xs">
+                                    {{ lote.lote_codigo }}
+                                </td>
+                                <td class="p-4">
+                                    <div class="font-bold text-white text-base">{{ lote.cultivo }}</div>
+                                    <div class="text-xs text-slate-400">{{ lote.variedad or 'Variedad estándar' }} • {{ lote.temporada }}</div>
+                                </td>
+                                <td class="p-4 text-xs">
+                                    <div class="text-slate-300 font-mono">{{ lote.fecha_siembra or 'Sin fecha' }}</div>
+                                    <div class="text-slate-400">{{ lote.superficie_m2 }} m² • {{ lote.cantidad }} uds</div>
+                                </td>
+                                <td class="p-4">
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold
+                                        {% if lote.estado == 'Cosechado' %} bg-emerald-500/10 text-emerald-400 border border-emerald-500/20
+                                        {% elif lote.estado == 'En Crecimiento' %} bg-sky-500/10 text-sky-400 border border-sky-500/20
+                                        {% elif lote.estado == 'Sembrado' %} bg-amber-500/10 text-amber-400 border border-amber-500/20
+                                        {% else %} bg-slate-500/10 text-slate-400 border border-slate-500/20 {% endif %}">
+                                        ● {{ lote.estado }}
+                                    </span>
+                                </td>
+                                <td class="p-4">
+                                    {% if lote.en_carencia %}
+                                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/30">
+                                        <span>⛔ EN CARENCIA</span>
+                                        <span class="font-mono">({{ lote.dias_restantes }} días rest. hasta {{ lote.fecha_fin_seguridad }})</span>
+                                    </div>
+                                    {% else %}
+                                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                        <span>✓ APTO PARA COSECHA</span>
+                                    </div>
+                                    {% endif %}
+                                </td>
+                                <td class="p-4 text-right">
+                                    <form action="/actualizar-estado-lote" method="POST" class="inline-flex items-center gap-2">
+                                        <input type="hidden" name="lote_id" value="{{ lote.id }}">
+                                        <select name="estado" onchange="this.form.submit()" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-300 focus:outline-none focus:border-emerald-500">
+                                            <option value="Sembrado" {% if lote.estado == 'Sembrado' %}selected{% endif %}>Sembrado</option>
+                                            <option value="En Crecimiento" {% if lote.estado == 'En Crecimiento' %}selected{% endif %}>En Crecimiento</option>
+                                            <option value="Cosechado" {% if lote.estado == 'Cosechado' %}selected{% endif %}>Cosechado</option>
+                                            <option value="Finalizado" {% if lote.estado == 'Finalizado' %}selected{% endif %}>Finalizado</option>
+                                        </select>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="p-8 text-center text-slate-500 text-sm">
+                                    No hay lotes registrados actualmente en el invernadero.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB 2: FITOSANITARIOS (ROPO / MAPA)        -->
+        <!-- ========================================== -->
+        <div x-show="activeTab === 'fitosanitarios'" class="space-y-6" x-transition x-cloak>
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl font-bold text-white">Registro Oficial de Tratamientos Fitosanitarios</h2>
+                    <p class="text-xs text-slate-400">Normativa de la Xunta de Galicia y MAPA: Gestión Integrada de Plagas y control de plazos de seguridad.</p>
+                </div>
+                <button @click="showNuevoTratamiento = !showNuevoTratamiento"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-lg shadow-emerald-900/30">
+                    <span x-text="showNuevoTratamiento ? '✕ Cancelar' : '+ Registrar Tratamiento'"></span>
+                </button>
+            </div>
+
+            <!-- Formulario Desplegable: Tratamiento Fitosanitario -->
+            <div x-show="showNuevoTratamiento" x-collapse x-cloak class="glass-panel p-6 rounded-2xl border border-emerald-500/30">
+                <h3 class="text-base font-semibold text-emerald-300 mb-4 flex items-center gap-2">
+                    <span>🛡️</span> Nuevo Tratamiento Fitosanitario (Registro Oficial ROPO)
+                </h3>
+                <form action="/agregar-tratamiento" method="POST" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Lote / Cultivo Destino</label>
+                        <select name="lote_id" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                            {% for lote in lotes %}
+                            <option value="{{ lote.id }}">{{ lote.lote_codigo }} - {{ lote.cultivo }} ({{ lote.variedad or '' }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Fecha de Aplicación</label>
+                        <input type="date" name="fecha_tratamiento" required value="{{ fecha_hoy }}" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Plaga / Enfermedad Justificada</label>
+                        <input type="text" name="plaga_enfermedad" required placeholder="Ej. Mildiu, Oídio, Mosca blanca, Trips" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Producto Comercial</label>
+                        <input type="text" name="producto_comercial" required placeholder="Ej. NeemAzal-T/S, Cuprocol, Azufre" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Nº Registro MAPA</label>
+                        <input type="text" name="num_registro_mapa" required placeholder="Ej. ES-00248 o 24.120" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Materia Activa</label>
+                        <input type="text" name="materia_activa" required placeholder="Ej. Azadiractina 1%, Oxicloruro de cobre" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Dosis Autorizada</label>
+                        <input type="text" name="dosis" required placeholder="Ej. 1.5 ml/L o 2.5 kg/ha" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Volumen de Caldo (Litros)</label>
+                        <input type="number" step="0.5" name="volumen_caldo_l" required value="20" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Nombre del Aplicador</label>
+                        <input type="text" name="aplicador_nombre" required value="{{ exp.titular }}" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Nº Carné ROPO Aplicador</label>
+                        <input type="text" name="ropo_aplicador" required value="{{ exp.ropo_titular }}" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Plazo de Seguridad (Días Carencia)</label>
+                        <input type="number" name="plazo_seguridad_dias" required min="0" value="3" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Observaciones / Eficacia</label>
+                        <input type="text" name="observaciones" placeholder="Tratamiento foliar al atardecer" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div class="col-span-1 md:col-span-3 lg:col-span-4 flex justify-end gap-3 mt-2">
+                        <button type="button" @click="showNuevoTratamiento = false" class="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white bg-slate-800 transition">Cancelar</button>
+                        <button type="submit" class="px-5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-md shadow-emerald-900/40">Registrar Tratamiento Oficial</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Tabla de Tratamientos -->
+            <div class="glass-panel rounded-2xl overflow-hidden shadow-2xl">
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left text-sm border-collapse">
+                        <thead>
+                            <tr class="bg-slate-800/80 border-b border-slate-700/60 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                                <th class="p-4">Fecha</th>
+                                <th class="p-4">Lote Destino</th>
+                                <th class="p-4">Plaga / Producto MAPA</th>
+                                <th class="p-4">Materia Activa & Dosis</th>
+                                <th class="p-4">Aplicador (ROPO)</th>
+                                <th class="p-4">Plazo Seguridad</th>
+                                <th class="p-4">Fin Carencia</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/60">
+                            {% for t in tratamientos %}
+                            <tr class="hover:bg-slate-800/40 transition">
+                                <td class="p-4 font-mono text-slate-300 text-xs whitespace-nowrap">{{ t.fecha_tratamiento }}</td>
+                                <td class="p-4">
+                                    <div class="font-mono text-emerald-400 text-xs">{{ t.lote_codigo }}</div>
+                                    <div class="font-semibold text-white">{{ t.cultivo }}</div>
+                                </td>
+                                <td class="p-4">
+                                    <div class="text-white font-medium">{{ t.producto_comercial }}</div>
+                                    <div class="text-xs text-slate-400">Plaga: {{ t.plaga_enfermedad }} • Reg: {{ t.num_registro_mapa }}</div>
+                                </td>
+                                <td class="p-4 text-xs">
+                                    <div class="text-slate-300">{{ t.materia_activa }}</div>
+                                    <div class="text-slate-400">Dosis: {{ t.dosis }} (Caldo: {{ t.volumen_caldo_l }} L)</div>
+                                </td>
+                                <td class="p-4 text-xs">
+                                    <div class="text-slate-200">{{ t.aplicador_nombre }}</div>
+                                    <div class="text-slate-400 font-mono">{{ t.ropo_aplicador }}</div>
+                                </td>
+                                <td class="p-4 text-xs font-bold text-center">
+                                    <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                                        {{ t.plazo_seguridad_dias }} días
+                                    </span>
+                                </td>
+                                <td class="p-4 font-mono text-xs">
+                                    {% if t.fecha_fin_seguridad >= fecha_hoy %}
+                                    <span class="text-amber-400 font-bold">⛔ {{ t.fecha_fin_seguridad }}</span>
+                                    {% else %}
+                                    <span class="text-emerald-400 font-medium">✓ {{ t.fecha_fin_seguridad }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="p-8 text-center text-slate-500 text-sm">
+                                    No hay tratamientos fitosanitarios registrados aún.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB 3: FERTILIZACIÓN SOSTENIBLE            -->
+        <!-- ========================================== -->
+        <div x-show="activeTab === 'fertilizacion'" class="space-y-6" x-transition x-cloak>
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl font-bold text-white">Plan y Registro de Fertilización Sostenible</h2>
+                    <p class="text-xs text-slate-400">Cumplimiento del RD 1051/2022 y directrices de protección de aguas contra la contaminación por nitratos en Galicia.</p>
+                </div>
+                <button @click="showNuevaFertilizacion = !showNuevaFertilizacion"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-lg shadow-emerald-900/30">
+                    <span x-text="showNuevaFertilizacion ? '✕ Cancelar' : '+ Registrar Abonado'"></span>
+                </button>
+            </div>
+
+            <!-- Formulario Desplegable: Fertilización -->
+            <div x-show="showNuevaFertilizacion" x-collapse x-cloak class="glass-panel p-6 rounded-2xl border border-emerald-500/30">
+                <h3 class="text-base font-semibold text-emerald-300 mb-4 flex items-center gap-2">
+                    <span>🌿</span> Añadir Aplicación de Fertilizante / Enmienda Orgánica
+                </h3>
+                <form action="/agregar-fertilizacion" method="POST" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Lote Destino</label>
+                        <select name="lote_id" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                            {% for lote in lotes %}
+                            <option value="{{ lote.id }}">{{ lote.lote_codigo }} - {{ lote.cultivo }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Fecha de Abonado</label>
+                        <input type="date" name="fecha_abonado" required value="{{ fecha_hoy }}" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Tipo de Fertilizante</label>
+                        <select name="tipo_fertilizante" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                            <option value="Abono Orgánico / Compost Gallego">Abono Orgánico / Compost Gallego</option>
+                            <option value="Fertirrigación Soluble NPK">Fertirrigación Soluble NPK</option>
+                            <option value="Abono Foliar Bioestimulante">Abono Foliar Bioestimulante</option>
+                            <option value="Enmienda Cálcica / Magnesiana">Enmienda Cálcica / Magnesiana</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Nombre Comercial / Origen</label>
+                        <input type="text" name="nombre_abono" required placeholder="Ej. Compost vegetal maduro o NPK 15-5-30" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Riqueza N-P-K declarada</label>
+                        <input type="text" name="riqueza_npk" placeholder="Ej. 3-2-2 (Orgánico) o 14-7-28" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Dosis (kg o L por m²)</label>
+                        <input type="number" step="0.01" name="dosis_kg_m2" required value="0.25" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Método de Aplicación</label>
+                        <select name="metodo_aplicacion" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                            <option value="Fertirriego por Goteo Localizado">Fertirriego por Goteo Localizado</option>
+                            <option value="Incorporación a Suelo / Fondo">Incorporación a Suelo / Fondo</option>
+                            <option value="Pulverización Foliar">Pulverización Foliar</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Observaciones</label>
+                        <input type="text" name="observaciones" placeholder="Aporte en fase de engorde" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div class="col-span-1 md:col-span-3 lg:col-span-4 flex justify-end gap-3 mt-2">
+                        <button type="button" @click="showNuevaFertilizacion = false" class="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white bg-slate-800 transition">Cancelar</button>
+                        <button type="submit" class="px-5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-md shadow-emerald-900/40">Guardar Registro de Fertilización</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Tabla de Fertilización -->
+            <div class="glass-panel rounded-2xl overflow-hidden shadow-2xl">
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left text-sm border-collapse">
+                        <thead>
+                            <tr class="bg-slate-800/80 border-b border-slate-700/60 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                                <th class="p-4">Fecha</th>
+                                <th class="p-4">Lote Destino</th>
+                                <th class="p-4">Tipo & Fertilizante</th>
+                                <th class="p-4">Riqueza N-P-K</th>
+                                <th class="p-4">Dosis</th>
+                                <th class="p-4">Método Aplicación</th>
+                                <th class="p-4">Observaciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/60">
+                            {% for f in fertilizaciones %}
+                            <tr class="hover:bg-slate-800/40 transition">
+                                <td class="p-4 font-mono text-slate-300 text-xs whitespace-nowrap">{{ f.fecha_abonado }}</td>
+                                <td class="p-4">
+                                    <div class="font-mono text-emerald-400 text-xs">{{ f.lote_codigo }}</div>
+                                    <div class="font-semibold text-white">{{ f.cultivo }}</div>
+                                </td>
+                                <td class="p-4">
+                                    <div class="text-white font-medium">{{ f.nombre_abono }}</div>
+                                    <div class="text-xs text-slate-400">{{ f.tipo_fertilizante }}</div>
+                                </td>
+                                <td class="p-4 text-xs font-mono text-emerald-300">{{ f.riqueza_npk or 'N/D' }}</td>
+                                <td class="p-4 text-xs font-semibold text-slate-200">{{ f.dosis_kg_m2 }} kg o L/m²</td>
+                                <td class="p-4 text-xs text-slate-300">{{ f.metodo_aplicacion }}</td>
+                                <td class="p-4 text-xs text-slate-400">{{ f.observaciones or '-' }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="p-8 text-center text-slate-500 text-sm">
+                                    No hay registros de fertilización todavía.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB 4: COSECHAS & TRAZABILIDAD             -->
+        <!-- ========================================== -->
+        <div x-show="activeTab === 'cosechas'" class="space-y-6" x-transition x-cloak>
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl font-bold text-white">Trazabilidad de Cosecha y Salidas</h2>
+                    <p class="text-xs text-slate-400">Validación de cumplimiento estricto de plazos de seguridad antes de recolección y emisión de lotes de venta.</p>
+                </div>
+                <button @click="showNuevaCosecha = !showNuevaCosecha"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-lg shadow-emerald-900/30">
+                    <span x-text="showNuevaCosecha ? '✕ Cancelar' : '+ Registrar Recolección'"></span>
+                </button>
+            </div>
+
+            <!-- Formulario Desplegable: Cosecha -->
+            <div x-show="showNuevaCosecha" x-collapse x-cloak class="glass-panel p-6 rounded-2xl border border-emerald-500/30">
+                <h3 class="text-base font-semibold text-emerald-300 mb-4 flex items-center gap-2">
+                    <span>🧺</span> Registrar Cosecha con Control de Inocuidad
+                </h3>
+                <form action="/agregar-cosecha" method="POST" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Lote a Cosechar</label>
+                        <select name="lote_id" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                            {% for lote in lotes %}
+                            <option value="{{ lote.id }}">
+                                {{ lote.lote_codigo }} - {{ lote.cultivo }} 
+                                {% if lote.en_carencia %}[⚠ EN CARENCIA]{% else %}[✓ APTO]{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Fecha de Recolección</label>
+                        <input type="date" name="fecha_cosecha" required value="{{ fecha_hoy }}" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Cantidad Cosechada (Kg / Uds)</label>
+                        <input type="number" step="0.1" name="cantidad_kg" required value="25.0" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Albarán / Código Lote Salida</label>
+                        <input type="text" name="albaran_lote_salida" required placeholder="Ej. ALB-2026-042" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div class="col-span-1 md:col-span-2">
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Destino Comercial / Cliente</label>
+                        <input type="text" name="destino_comercial" required placeholder="Ej. Mercado de Abastos de Santiago / Cooperativa / Venta Directa" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div class="col-span-1 md:col-span-2">
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Observaciones</label>
+                        <input type="text" name="observaciones" placeholder="Cosecha de primera categoría en cajas ventiladas" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div class="col-span-1 md:col-span-3 lg:col-span-4 flex justify-end gap-3 mt-2">
+                        <button type="button" @click="showNuevaCosecha = false" class="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white bg-slate-800 transition">Cancelar</button>
+                        <button type="submit" class="px-5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-md shadow-emerald-900/40">Guardar Registro de Cosecha</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Tabla de Cosechas -->
+            <div class="glass-panel rounded-2xl overflow-hidden shadow-2xl">
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left text-sm border-collapse">
+                        <thead>
+                            <tr class="bg-slate-800/80 border-b border-slate-700/60 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                                <th class="p-4">Fecha Cosecha</th>
+                                <th class="p-4">Lote Origen</th>
+                                <th class="p-4">Cultivo</th>
+                                <th class="p-4">Cantidad</th>
+                                <th class="p-4">Albarán Salida</th>
+                                <th class="p-4">Destino Comercial</th>
+                                <th class="p-4">Plazo Seguridad</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/60">
+                            {% for c in cosechas %}
+                            <tr class="hover:bg-slate-800/40 transition">
+                                <td class="p-4 font-mono text-slate-300 text-xs whitespace-nowrap">{{ c.fecha_cosecha }}</td>
+                                <td class="p-4 font-mono text-xs text-emerald-400 font-medium">{{ c.lote_codigo }}</td>
+                                <td class="p-4 font-bold text-white">{{ c.cultivo }}</td>
+                                <td class="p-4 text-emerald-400 font-extrabold text-base">{{ c.cantidad_kg }} <span class="text-xs text-slate-400 font-normal">kg</span></td>
+                                <td class="p-4 font-mono text-xs text-slate-300">{{ c.albaran_lote_salida }}</td>
+                                <td class="p-4 text-xs text-slate-300">{{ c.destino_comercial }}</td>
+                                <td class="p-4">
+                                    {% if c.plazo_respetado %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                        ✓ Respetado
+                                    </span>
+                                    {% else %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                                        ⚠ Alerta Carencia
+                                    </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="p-8 text-center text-slate-500 text-sm">
+                                    No hay cosechas registradas aún en esta campaña.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB 5: FICHA EXPLOTACIÓN & SIGPAC          -->
+        <!-- ========================================== -->
+        <div x-show="activeTab === 'explotacion'" class="space-y-6" x-transition x-cloak>
+            <div class="glass-panel p-6 rounded-2xl space-y-6">
+                <!-- Encabezado con información clara -->
+                <div class="border-b border-slate-800 pb-4">
+                    <div class="flex flex-wrap justify-between items-start gap-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                                <span>📍</span> Ubicación Geográfica e Identificación de la Explotación
+                            </h2>
+                            <p class="text-xs text-slate-400 mt-1">
+                                Selecciona y personaliza libremente dónde está ubicado tu invernadero en Galicia. Esta información se actualiza de inmediato en el panel y en el Libro de Campo Oficial.
+                            </p>
+                        </div>
+                        <a href="https://sigpac.mapa.gob.es/fega/visor/" target="_blank"
+                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-emerald-400 font-medium transition">
+                            <span>🗺️</span>
+                            <span>Abrir Visor SIGPAC / SixPac Galicia ↗</span>
+                        </a>
+                    </div>
+                </div>
+
+                <form action="/actualizar-explotacion" method="POST" class="space-y-6">
+                    <!-- SECCIÓN 1: UBICACIÓN GEOGRÁFICA Y SIGPAC -->
+                    <div>
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-emerald-400 mb-3 flex items-center gap-2">
+                            <span>1.</span> Ubicación Territorial y Parcela SIGPAC
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Provincia</label>
+                                <select name="provincia" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                                    <option value="A Coruña" {% if exp.provincia == 'A Coruña' %}selected{% endif %}>A Coruña</option>
+                                    <option value="Lugo" {% if exp.provincia == 'Lugo' %}selected{% endif %}>Lugo</option>
+                                    <option value="Ourense" {% if exp.provincia == 'Ourense' %}selected{% endif %}>Ourense</option>
+                                    <option value="Pontevedra" {% if exp.provincia == 'Pontevedra' %}selected{% endif %}>Pontevedra</option>
+                                    <option value="Otra" {% if exp.provincia not in ['A Coruña', 'Lugo', 'Ourense', 'Pontevedra'] %}selected{% endif %}>Otra provincia</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Municipio / Concello</label>
+                                <input type="text" name="municipio" required list="lista-concellos" value="{{ exp.municipio }}"
+                                       placeholder="Escribe o selecciona tu concello..."
+                                       class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                                <datalist id="lista-concellos">
+                                    <option value="Santiago de Compostela">
+                                    <option value="Betanzos">
+                                    <option value="Padrón">
+                                    <option value="Cambados">
+                                    <option value="Vilagarcía de Arousa">
+                                    <option value="Tomiño">
+                                    <option value="Ourense">
+                                    <option value="Lugo">
+                                    <option value="Pontevedra">
+                                    <option value="Ferrol">
+                                    <option value="Carballo">
+                                    <option value="Ribadavia">
+                                    <option value="Lalín">
+                                    <option value="Monforte de Lemos">
+                                    <option value="Chantada">
+                                    <option value="Vilalba">
+                                    <option value="Viveiro">
+                                    <option value="Celanova">
+                                    <option value="Xinzo de Limia">
+                                    <option value="Verín">
+                                    <option value="A Estrada">
+                                    <option value="Caldas de Reis">
+                                    <option value="Redondela">
+                                    <option value="Tui">
+                                    <option value="Cangas">
+                                    <option value="Marín">
+                                    <option value="Arzúa">
+                                    <option value="Melide">
+                                    <option value="Ordes">
+                                    <option value="Noia">
+                                    <option value="Ribeira">
+                                </datalist>
+                                <span class="text-[11px] text-slate-400 mt-1 block">Puedes escribir libremente cualquier concello de Galicia.</span>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Parroquia / Lugar / Aldea (Opcional)</label>
+                                <input type="text" name="parroquia" value="{{ exp.parroquia or '' }}" placeholder="Ej. Herbón, Iria Flavia, Cesuras..."
+                                       class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Polígono SIGPAC</label>
+                                <input type="number" name="poligono" required value="{{ exp.poligono }}"
+                                       class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-emerald-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Parcela SIGPAC</label>
+                                <input type="number" name="parcela" required value="{{ exp.parcela }}"
+                                       class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-emerald-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Recinto SIGPAC</label>
+                                <input type="number" name="recinto" required value="{{ exp.recinto }}"
+                                       class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-emerald-500">
+                            </div>
+
+                            <div class="col-span-1 md:col-span-2 lg:col-span-3">
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Coordenadas GPS (Latitud, Longitud - Opcional)</label>
+                                <input type="text" name="coordenadas_gps" value="{{ exp.coordenadas_gps or '' }}" placeholder="Ej. 42.8805, -8.5456"
+                                       class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-emerald-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECCIÓN 2: DATOS DEL TITULAR Y ACREDITACIÓN OFICIAL -->
+                    <div class="pt-4 border-t border-slate-800">
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-emerald-400 mb-3 flex items-center gap-2">
+                            <span>2.</span> Acreditación Oficial del Titular (REGEPA / ROPO)
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Titular de la Explotación</label>
+                                <input type="text" name="titular" required value="{{ exp.titular }}" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">NIF / CIF</label>
+                                <input type="text" name="nif" required value="{{ exp.nif }}" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-emerald-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Código REGEPA / REGA</label>
+                                <input type="text" name="regepa" required value="{{ exp.regepa }}" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-emerald-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Nº Carné ROPO Titular / Asesor GIP</label>
+                                <input type="text" name="ropo_titular" required value="{{ exp.ropo_titular }}" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-emerald-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Superficie Total Invernadero (m²)</label>
+                                <input type="number" step="0.1" name="sup_invernadero_m2" required value="{{ exp.sup_invernadero_m2 }}" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                        <button type="submit" class="px-6 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-lg shadow-emerald-900/40 flex items-center gap-2">
+                            <span>💾</span>
+                            <span>Guardar Ubicación y Datos de Explotación</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Pie de página -->
+    <footer class="border-t border-slate-800/80 mt-12 py-6 text-center text-xs text-slate-500">
+        <p>Sistema de Gestión de Invernadero y Cuaderno de Campo Digital • Adaptado a la Normativa Agrícola de Galicia (Consellería do Medio Rural / SIEX)</p>
+    </footer>
+
+    <!-- Registro de Service Worker para PWA -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((reg) => console.log('Service Worker registrado con éxito en scope:', reg.scope))
+                    .catch((err) => console.warn('Error registrando Service Worker:', err));
+            });
+        }
+    </script>
+</body>
+</html>

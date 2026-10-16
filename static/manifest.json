@@ -1,0 +1,44 @@
+{
+  "name": "Invernadero Galego • Libro de Campo Digital",
+  "short_name": "Invernadero",
+  "description": "Control de producción de invernadero y Cuaderno de Explotación Agrícola conforme a la normativa de Galicia y SIEX.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b1120",
+  "theme_color": "#0b1120",
+  "orientation": "any",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "/static/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["agriculture", "business", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Lotes de Cultivo",
+      "url": "/?tab=lotes",
+      "description": "Ver y gestionar lotes de cultivo"
+    },
+    {
+      "name": "Fitosanitarios ROPO",
+      "url": "/?tab=fitosanitarios",
+      "description": "Registro oficial de tratamientos"
+    },
+    {
+      "name": "Libro de Campo (PDF)",
+      "url": "/libro-campo/imprimir",
+      "description": "Hoja de inspección oficial"
+    }
+  ]
+}

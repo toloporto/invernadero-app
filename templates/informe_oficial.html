@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuaderno de Explotación Agrícola - Normativa Galicia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            body {
+                background-color: white !important;
+                color: black !important;
+                font-size: 11pt;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-border {
+                border-color: #333 !important;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 p-8 min-h-screen">
+    <div class="max-w-5xl mx-auto bg-white p-8 rounded-lg shadow print:shadow-none print:p-0">
+        <!-- Barra de herramientas no imprimible -->
+        <div class="no-print mb-6 flex justify-between items-center bg-slate-800 text-white p-4 rounded-lg">
+            <div>
+                <h2 class="font-bold text-emerald-400 text-lg">Hoja Oficial del Libro de Campo</h2>
+                <p class="text-sm text-slate-300">Formato auditable para inspección de la Consellería do Medio Rural (Xunta de Galicia / SIEX)</p>
+            </div>
+            <div class="space-x-3">
+                <a href="/" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-sm font-medium transition">← Volver al Panel</a>
+                <button onclick="window.print()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded text-sm font-medium transition flex-inline items-center gap-2">
+                    🖨️ Imprimir / Guardar en PDF
+                </button>
+            </div>
+        </div>
+
+        <!-- Encabezado Oficial -->
+        <header class="border-b-2 border-slate-900 pb-4 mb-6">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h1 class="text-2xl font-black tracking-tight text-slate-900">CUADERNO DE EXPLOTACIÓN AGRÍCOLA</h1>
+                    <p class="text-sm font-semibold text-slate-600 uppercase tracking-wider">
+                        Comunidad Autónoma de Galicia • Rexisto de Explotacións Agrarias (REGEPA / SIEX)
+                    </p>
+                    <p class="text-xs text-slate-500 mt-1">Conforme ao Real Decreto 1054/2022 e Real Decreto 1051/2022</p>
+                </div>
+                <div class="text-right border-l-2 border-slate-300 pl-4">
+                    <span class="inline-block bg-slate-100 text-slate-800 font-mono text-xs px-2 py-1 rounded border border-slate-300">
+                        FECHA EMISIÓN: {{ fecha_actual }}
+                    </span>
+                    <p class="text-xs text-slate-500 mt-1 font-semibold">Instalación: Invernadero Bajo Abrigo</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- 1. Datos Identificativos de la Explotación -->
+        <section class="mb-6">
+            <h2 class="text-base font-bold bg-slate-200 px-3 py-1 text-slate-800 uppercase tracking-wide mb-3 border-l-4 border-emerald-600">
+                1. Datos de la Explotación y Referencias SIGPAC
+            </h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                <div class="p-2 border rounded bg-slate-50">
+                    <span class="font-bold text-slate-500 block">Titular de la Explotación</span>
+                    <span class="font-semibold text-slate-900">{{ exp.titular }}</span>
+                </div>
+                <div class="p-2 border rounded bg-slate-50">
+                    <span class="font-bold text-slate-500 block">NIF / CIF</span>
+                    <span class="font-semibold font-mono text-slate-900">{{ exp.nif }}</span>
+                </div>
+                <div class="p-2 border rounded bg-slate-50">
+                    <span class="font-bold text-slate-500 block">Código REGEPA / REGA</span>
+                    <span class="font-semibold font-mono text-slate-900">{{ exp.regepa }}</span>
+                </div>
+                <div class="p-2 border rounded bg-slate-50">
+                    <span class="font-bold text-slate-500 block">Nº Carné ROPO Titular</span>
+                    <span class="font-semibold font-mono text-slate-900">{{ exp.ropo_titular }}</span>
+                </div>
+                <div class="p-2 border rounded bg-slate-50">
+                    <span class="font-bold text-slate-500 block">Provincia / Concello</span>
+                    <span class="font-semibold text-slate-900">{{ exp.provincia }} - {{ exp.municipio }} {% if exp.parroquia %}({{ exp.parroquia }}){% endif %}</span>
+                </div>
+                <div class="p-2 border rounded bg-slate-50">
+                    <span class="font-bold text-slate-500 block">Polígono / Parcela SIGPAC</span>
+                    <span class="font-semibold font-mono text-slate-900">Polígono: {{ exp.poligono }} | Parcela: {{ exp.parcela }}</span>
+                </div>
+                <div class="p-2 border rounded bg-slate-50">
+                    <span class="font-bold text-slate-500 block">Recinto SIGPAC</span>
+                    <span class="font-semibold font-mono text-slate-900">Recinto {{ exp.recinto }}</span>
+                </div>
+                <div class="p-2 border rounded bg-slate-50">
+                    <span class="font-bold text-slate-500 block">Superficie Invernadero</span>
+                    <span class="font-semibold text-slate-900">{{ exp.sup_invernadero_m2 }} m²</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Registro Oficial de Tratamientos Fitosanitarios -->
+        <section class="mb-6">
+            <h2 class="text-base font-bold bg-slate-200 px-3 py-1 text-slate-800 uppercase tracking-wide mb-3 border-l-4 border-emerald-600">
+                2. Registro Oficial de Aplicación de Productos Fitosanitarios (ROPO / MAPA)
+            </h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border border-slate-300 border-collapse">
+                    <thead class="bg-slate-100 font-semibold border-b border-slate-300">
+                        <tr>
+                            <th class="p-2 border-r">Fecha</th>
+                            <th class="p-2 border-r">Lote / Cultivo</th>
+                            <th class="p-2 border-r">Plaga / Justificación</th>
+                            <th class="p-2 border-r">Producto Comercial y Reg. MAPA</th>
+                            <th class="p-2 border-r">Materia Activa</th>
+                            <th class="p-2 border-r">Dosis y Caldo</th>
+                            <th class="p-2 border-r">Aplicador (ROPO)</th>
+                            <th class="p-2 border-r">Plazo Seg. (Días)</th>
+                            <th class="p-2">Fin Carencia</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in tratamientos %}
+                        <tr class="border-b border-slate-200 hover:bg-slate-50">
+                            <td class="p-2 border-r font-mono whitespace-nowrap">{{ t.fecha_tratamiento }}</td>
+                            <td class="p-2 border-r font-medium">{{ t.lote_codigo }} ({{ t.cultivo }})</td>
+                            <td class="p-2 border-r">{{ t.plaga_enfermedad }}</td>
+                            <td class="p-2 border-r font-medium">{{ t.producto_comercial }} <span class="text-slate-500 font-mono block">Reg: {{ t.num_registro_mapa }}</span></td>
+                            <td class="p-2 border-r">{{ t.materia_activa }}</td>
+                            <td class="p-2 border-r">{{ t.dosis }} <span class="text-slate-500 block">({{ t.volumen_caldo_l }} L)</span></td>
+                            <td class="p-2 border-r">{{ t.aplicador_nombre }} <span class="text-slate-500 font-mono block">{{ t.ropo_aplicador }}</span></td>
+                            <td class="p-2 border-r text-center font-bold">{{ t.plazo_seguridad_dias }} d.</td>
+                            <td class="p-2 font-mono font-semibold text-slate-900">{{ t.fecha_fin_seguridad }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="p-3 text-center text-slate-500 italic">No hay tratamientos fitosanitarios registrados en este período.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 3. Registro de Fertilización Sostenible -->
+        <section class="mb-6">
+            <h2 class="text-base font-bold bg-slate-200 px-3 py-1 text-slate-800 uppercase tracking-wide mb-3 border-l-4 border-emerald-600">
+                3. Plan y Registro de Fertilización Sostenible (RD 1051/2022)
+            </h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border border-slate-300 border-collapse">
+                    <thead class="bg-slate-100 font-semibold border-b border-slate-300">
+                        <tr>
+                            <th class="p-2 border-r">Fecha</th>
+                            <th class="p-2 border-r">Lote / Cultivo</th>
+                            <th class="p-2 border-r">Tipo de Fertilizante</th>
+                            <th class="p-2 border-r">Nombre Comercial / Tipo Abono</th>
+                            <th class="p-2 border-r">Equilibrio N-P-K</th>
+                            <th class="p-2 border-r">Dosis</th>
+                            <th class="p-2 border-r">Método de Aplicación</th>
+                            <th class="p-2">Observaciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for f in fertilizaciones %}
+                        <tr class="border-b border-slate-200 hover:bg-slate-50">
+                            <td class="p-2 border-r font-mono whitespace-nowrap">{{ f.fecha_abonado }}</td>
+                            <td class="p-2 border-r font-medium">{{ f.lote_codigo }} ({{ f.cultivo }})</td>
+                            <td class="p-2 border-r">{{ f.tipo_fertilizante }}</td>
+                            <td class="p-2 border-r font-medium">{{ f.nombre_abono }}</td>
+                            <td class="p-2 border-r font-mono">{{ f.riqueza_npk or 'N/D' }}</td>
+                            <td class="p-2 border-r">{{ f.dosis_kg_m2 }} kg o L/m²</td>
+                            <td class="p-2 border-r">{{ f.metodo_aplicacion }}</td>
+                            <td class="p-2 text-slate-600">{{ f.observaciones or '-' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="p-3 text-center text-slate-500 italic">No hay aplicaciones de fertilización registradas.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 4. Registro de Recolección y Comercialización (Trazabilidad) -->
+        <section class="mb-8">
+            <h2 class="text-base font-bold bg-slate-200 px-3 py-1 text-slate-800 uppercase tracking-wide mb-3 border-l-4 border-emerald-600">
+                4. Trazabilidad de Recolección y Salidas de Producto
+            </h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border border-slate-300 border-collapse">
+                    <thead class="bg-slate-100 font-semibold border-b border-slate-300">
+                        <tr>
+                            <th class="p-2 border-r">Fecha Recolección</th>
+                            <th class="p-2 border-r">Lote Origen</th>
+                            <th class="p-2 border-r">Cultivo</th>
+                            <th class="p-2 border-r">Cantidad (Kg/Uds)</th>
+                            <th class="p-2 border-r">Albarán / Lote Salida</th>
+                            <th class="p-2 border-r">Destino Comercial</th>
+                            <th class="p-2 border-r">Plazo Seg. Respetado</th>
+                            <th class="p-2">Observaciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in cosechas %}
+                        <tr class="border-b border-slate-200 hover:bg-slate-50">
+                            <td class="p-2 border-r font-mono whitespace-nowrap">{{ c.fecha_cosecha }}</td>
+                            <td class="p-2 border-r font-mono font-medium">{{ c.lote_codigo }}</td>
+                            <td class="p-2 border-r">{{ c.cultivo }}</td>
+                            <td class="p-2 border-r font-semibold">{{ c.cantidad_kg }}</td>
+                            <td class="p-2 border-r font-mono">{{ c.albaran_lote_salida }}</td>
+                            <td class="p-2 border-r">{{ c.destino_comercial }}</td>
+                            <td class="p-2 border-r text-center">
+                                {% if c.plazo_respetado %}
+                                <span class="text-green-700 font-bold">✓ CUMPLIDO</span>
+                                {% else %}
+                                <span class="text-red-700 font-bold">⚠ REVISAR</span>
+                                {% endif %}
+                            </td>
+                            <td class="p-2 text-slate-600">{{ c.observaciones or '-' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="p-3 text-center text-slate-500 italic">No hay registros de cosechas.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Firma y Declaración de Veracidad -->
+        <footer class="mt-12 pt-6 border-t-2 border-slate-400 grid grid-cols-2 gap-8 text-xs text-slate-600">
+            <div>
+                <p class="font-semibold text-slate-800 mb-1">Declaración del Titular:</p>
+                <p>El abajo firmante declara bajo su responsabilidad que los datos consignados en este cuaderno de explotación digital son veraces, se ajustan a la realidad de las labores ejecutadas y cumplen con los plazos de seguridad de productos fitosanitarios y la normativa vigente de la Comunidad Autónoma de Galicia.</p>
+            </div>
+            <div class="flex flex-col justify-end items-center border border-dashed border-slate-400 p-4 rounded min-h-[100px]">
+                <span class="text-slate-400 text-xs">Firma del Titular / Asesor GIP (ROPO)</span>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>
